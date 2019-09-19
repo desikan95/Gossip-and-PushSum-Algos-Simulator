@@ -13,6 +13,6 @@ defmodule Gossipsim do
 
   """
   def hello do
-    :world
+    :hello_world
   end
 end
