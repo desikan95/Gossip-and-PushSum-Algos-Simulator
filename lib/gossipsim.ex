@@ -12,7 +12,12 @@ defmodule Gossipsim do
       :world
 
   """
+
+
+
   def hello do
-    :hello_world
+    :ho_world
   end
+
+
 end
