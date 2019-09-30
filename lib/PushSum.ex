@@ -250,6 +250,58 @@ defmodule PushSumWorker do
     nodes
   end
 
+  def build3DTopology(numNodes) do
+
+    cuberoot =  1..numNodes |> Enum.map( fn (x) -> if (x*x*x == numNodes) do
+                                          x
+                                        end end)
+                            |> Enum.reject(fn(x) -> x==:nil end)
+    edgelen = Enum.at(cuberoot,0)-1
+    positions = Enum.map(0..edgelen, fn(x) ->
+                                                Enum.map(0..edgelen, fn(y) ->
+                                                                                Enum.map(0..edgelen, fn(z) ->
+                                                                                                                {x,y,z}
+                                                                                end)
+                                                end)
+                                      end)
+                |> List.flatten
+    proc = buildNodes(numNodes)
+    nodes = Enum.map(0..(numNodes-1), fn(i) ->
+                                 Tuple.append(Enum.at(positions,i), Enum.at(proc,i))
+                          end )
+    IO.inspect nodes
+    #{0,0,0,pid}=nodes
+    #IO.inspect pid
+    Enum.each(nodes, fn(node)->
+                                    list = Tuple.to_list(node)
+                                    #IO.inspect node
+                                    len = edgelen
+                                    case node do
+                                        {0,0,0,pid} -> IO.puts "Outer node"
+                                                       IO.inspect pid
+                                        {0,0,x,pid} when x==edgelen -> IO.puts "Outer node"
+                                                       IO.inspect pid
+                                        {0,x,0,pid} when x==edgelen-> IO.puts "Outer node"
+                                                       IO.inspect pid
+                                        {0,x,x,pid} when x==edgelen -> IO.puts "Outer node"
+                                                       IO.inspect pid
+                                       {x,0,0,pid} when x==edgelen -> IO.puts "Outer node"
+                                                      IO.inspect pid
+                                       {x,0,x,pid} when x==edgelen  -> IO.puts "Outer node"
+                                                      IO.inspect pid
+                                       {x,x,0,pid} when x==edgelen  -> IO.puts "Outer node"
+                                                      IO.inspect pid
+                                       {x,x,x,pid} when x==edgelen  -> IO.puts "Outer node"
+                                                      IO.inspect pid
+
+                                      _ -> #IO.puts "Not found now"
+                                    end
+                                    #IO.inspect pid
+                        end)
+
+
+  end
+
 
   def init (val) do
 
