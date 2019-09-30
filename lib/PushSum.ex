@@ -64,7 +64,7 @@ defmodule PushSumWorker do
   end
 
   def startPushSum(numNodes) do
-    nodes = buildFullTopology(numNodes)
+    nodes = startPushSumFor2D(numNodes)
     pid = Enum.random(nodes)
     IO.puts "Starting at "
     IO.inspect pid
@@ -134,25 +134,120 @@ defmodule PushSumWorker do
     {:noreply, state}
   end
 
+  def nextList([]) do
+    IO.puts "List parsed"
+  end
+
+  def nextList([head|tail]) do
+
+    case tail do
+
+      [elem,next|_] ->
+                  #IO.puts "Element is #{elem} Tail : #{next} Prev : #{head}"
+                  neighbourList = [head,next]
+                  updateNeighbours(elem, neighbourList)
+                  nextList(tail)
+      _ -> IO.puts "Lists parsed"
+    end
+
+
+  end
+
+
 
 
   def buildLineTopology(numNodes) do
     nodes = buildNodes(numNodes)
+    first_node = Enum.at(nodes,0)
+    last_node = Enum.at(nodes,numNodes-1)
+    updateNeighbours(first_node, [Enum.at(nodes,1)])
+    updateNeighbours(last_node, [Enum.at(nodes,numNodes-2)])
+    nextList(nodes)
+    printTopology(nodes)
 
-    list = [1,2,3,4,5]
-  #  a = Enum.at(list, 0)
-  #  b = Enum.at(list, 4)
-    [1,succ|_] = list
+    nodes
+  end
+
+  def startPushSumFor2D(numNodes) do
+    nodes = buildRandom2DTopology(numNodes)
+    pointers = Enum.map(nodes, fn(x) -> {_,neighbourList,_,_} = GenServer.call(x, {:printDetails})
+                                          if Enum.empty?(neighbourList) == false do
+                                                x
+                                          end
+                                      end)
+                 |> Enum.reject(fn(x) -> x==:nil end)
+
+    IO.puts "Pointers "
+    IO.inspect pointers
+
+    pointers
+    #GenServer.cast(pid,{:initial_start})
+  end
+
+  def distance(a,b) do
+    x1 = Enum.at(a,0)
+    x2 = Enum.at(b,0)
+    y1 = Enum.at(a,1)
+    y2 = Enum.at(b,1)
+    num1 = :math.pow(x2-x1,2)
+    num2 = :math.pow(y2-y1,2)
+    dist = :math.sqrt(num1+num2)
+    #IO.puts "Distance between #{x1},#{y1} and #{x2},#{y2} is #{dist}"
+    dist<0.1
+  end
+
+  def buildRandom2DTopology(numNodes) do
+    nodes = buildFullTopology(numNodes)
+    points = Enum.map(nodes, fn(item) -> {_,neighbourList,_,_} = GenServer.call(item, {:printDetails})
+                                      x = :rand.uniform() |> Float.round(7)
+                                      y = :rand.uniform() |> Float.round(7)
+                                      [x,y,item,neighbourList]
+                                      end)
+
+    Enum.each(points, fn (point) -> [x,y,pointID,neighbourList] = point
+                                    IO.puts "\n\nFor point"
+                                    IO.inspect pointID
+
+                                    newNeighbours = Enum.map(neighbourList, fn (neighbour) ->
+                                                        position = Enum.filter(points, fn(item) ->   [_,_,pid,_] = item
+                                                                           pid==neighbour
+                                                                           end)
+                                                                   |> Enum.reduce([],fn (item,pos)-> [x,y,_,_] = item
+                                                                           pos ++ [x,y]
+                                                                         end)
+                                                          if distance([x,y], position) do
+                                                              [neighbour]
+                                                          end
+
+                                                    end)
+                                                    |> Enum.reject(fn(x) -> x==:nil end)
+                                                    |> List.flatten
+                                      updateNeighbours(pointID,newNeighbours)
 
 
-    #list = a
-    #[succ | a] = a
+                                        IO.puts "New neighbour for "
+                                        IO.inspect pointID
+                                        IO.puts "is "
+                                        IO.inspect newNeighbours
+                                        IO.puts "\n\n"
 
+                                    end)
 
+    IO.puts "Comparisons are over"
+    printTopology(nodes)
 
+    IO.puts "printing list of nodes"
+    IO.inspect nodes
 
-    #IO.puts " #{x} #{a} #{b} "
-    #Enum.each(nodes, fn(x) -> neighbourList = List.)
+  #  pointerss = Enum.map(nodes, fn(x) -> {_,neighbourList,_,_} = GenServer.call(x, {:printDetails})
+  #                                      if Enum.empty?(neighbourList) == false do
+  #                                            x
+  #                                      end
+  #                                  end)
+    IO.puts "Printing pointerss"
+  #  printTopology(pointerss)
+
+    nodes
   end
 
 
