@@ -1,5 +1,6 @@
 defmodule PushSumWorker do
   use GenServer
+  require Integer
 
   def start_link(x) do
      {:ok, pid} = GenServer.start_link(__MODULE__,x)
@@ -20,6 +21,11 @@ defmodule PushSumWorker do
 
   def updateNeighbours(pid, list) do
     GenServer.call(pid, {:updateNeighbourList, list})
+    #GenServer.cast(pid, {:updateNeighbourList,list})
+  end
+
+  def addNeighbours(pid,list) do
+    GenServer.call(pid,{:addNeighbourList,list})
   end
 
   def print(pid) do
@@ -44,6 +50,12 @@ defmodule PushSumWorker do
     {:reply, id, state}
   end
 
+  def handle_call({:addNeighbourList, list},_from, state) do
+    {id, oldlist , s , w} = state
+    state = {id, [list|oldlist], s, w}
+    {:reply, id, state}
+  end
+
   def handle_call({:printDetails},_from, state) do
 
     {:reply, state, state}
@@ -64,7 +76,7 @@ defmodule PushSumWorker do
   end
 
   def startPushSum(numNodes) do
-    nodes = build3DTopology(numNodes)
+    nodes = buildHoneycombTopology(numNodes)
     pid = Enum.random(nodes)
     IO.puts "Starting at "
     IO.inspect pid
@@ -124,6 +136,12 @@ defmodule PushSumWorker do
     {id, neighbourList, s, w} = state
     state = {id, neighbourList,s/2, w/2}
     {:noreply, state}
+  end
+
+  def handle_cast({:newupdateNeighbourList,list},state) do
+    {id, _, s ,w} = state
+    state = { id , list, s, w}
+    {:noreply,state}
   end
 
 
@@ -276,27 +294,6 @@ defmodule PushSumWorker do
                                     list = Tuple.to_list(node)
                                     #IO.inspect node
                                     len = edgelen
-                          #          case node do
-                          #              {0,0,0,pid} -> IO.puts "Outer node"
-                          #                             IO.inspect  pid
-                          #              {0,0,x,pid} when x==edgelen -> IO.puts "Outer node"
-                          #                             IO.inspect pid
-                          #              {0,x,0,pid} when x==edgelen-> IO.puts "Outer node"
-                          #                             IO.inspect pid
-                          #              {0,x,x,pid} when x==edgelen -> IO.puts "Outer node"
-                          #                             IO.inspect pid
-                          #             {x,0,0,pid} when x==edgelen -> IO.puts "Outer node"
-                          #                            IO.inspect pid
-                          #             {x,0,x,pid} when x==edgelen  -> IO.puts "Outer node"
-                          #                            IO.inspect pid
-                          #             {x,x,0,pid} when x==edgelen  -> IO.puts "Outer node"
-                          #                            IO.inspect pid
-                          #             {x,x,x,pid} when x==edgelen  -> IO.puts "Outer node"
-                          #                            IO.inspect pid
-
-                          #            _ -> #IO.puts "Not found now"
-                          #          end
-                                #    IO.puts "\n\n"
                                     {x,y,z,pid} = node
                                     xneighbours = cond do
                                                     x==0 -> [{1,y,z},{len,y,z}]
@@ -344,20 +341,121 @@ defmodule PushSumWorker do
                                   #  updateNeighbours(pid,neighbourPIDs)
 
                         end)
-    #  printTopology(proc)
+      printTopology(proc)
 
       proc
   end
 
-  def simplefunc() do
-    {x,y,z} = {1,2,3}
-    list = [{4,5,6},{10,12,100},{1,2,3}]
-    listd = [{4,5,6,555},{10,12,100,666},{1,2,3,777}]
-    Enum.filter(listd,fn (item,x,y,z) -> {^x,^y,^z,value} = item
-                                    IO.puts  "#{value}"
-                            end)
+  def buildHoneycombTopology(numNodes) do
+    nodes = buildNodes(numNodes)
+    IO.inspect nodes
+    nodemap = Enum.reduce(nodes,%{}, fn(node,acc) ->  {id, _,_,_} = GenServer.call(node, {:printDetails})
+                                                      Map.put(acc, id, node)
+                                     end)
+    IO.inspect nodemap
+    nodelist = Enum.reduce(numNodes..1,[], fn x,acc -> [x|acc] end) |> Enum.chunk_every(6)
+    IO.inspect nodelist,charlists: :as_lists
 
+    nodelist
+    |> Enum.with_index
+    |> Enum.each(fn ({node, i}) ->
+                                IO.puts "#{i} : "
+
+                                cond do
+                                  Integer.is_odd(i) -> node
+                                                       |> Enum.with_index(1)
+                                                       |> Enum.map (fn ({x,j}) ->
+                                                                                  list = cond do
+                                                                                            Integer.is_even(j) -> [x-1,x+6,x-6]
+                                                                                            Integer.is_odd(j) -> [x+1,x+6,x-6]
+                                                                                         end
+                                                                                  IO.inspect "List for #{x} is "
+                                                                                  IO.inspect list,charlists: :as_lists
+                                                                                  listpids = Enum.map(list,fn(x)->
+                                                                                                                    if Map.has_key?(nodemap,x)
+                                                                                                                      do Map.get(nodemap,x) end
+                                                                                                                   end)
+                                                                                             |> Enum.reject(fn(x) -> x==:nil end)
+                                                                                  IO.inspect listpids
+                                                                                  pid = Map.get(nodemap,x)
+                                                                                  updateNeighbours(pid,listpids)
+                                                                      end)
+
+
+                                  Integer.is_even(i) -> case i do
+                                                            0 ->   node
+                                                                   |> Enum.with_index(1)
+                                                                   |> Enum.map (fn ({x,j}) ->
+                                                                                            list = cond do
+                                                                                                      j==1 -> [x+6]
+                                                                                                      j==6 -> [x+6]
+                                                                                                      Integer.is_even(j) -> [x+1,x+6]
+                                                                                                      Integer.is_odd(j) -> [x-1,x+6]
+                                                                                                   end
+                                                                                            IO.inspect "List for #{x} is "
+                                                                                            IO.inspect list,charlists: :as_lists
+                                                                                            listpids = Enum.map(list,fn(x)-> if Map.has_key?(nodemap,x)
+                                                                                                                                do Map.get(nodemap,x) end
+                                                                                                                              end)
+                                                                                                       |> Enum.reject(fn(x) -> x==:nil end)
+                                                                                            IO.inspect listpids
+                                                                                            pid = Map.get(nodemap,x)
+                                                                                            updateNeighbours(pid,listpids)
+                                                                                  end)
+
+                                                            _ ->  node
+                                                                  |> Enum.with_index(1)
+                                                                  |> Enum.map (fn ({x,j}) ->
+                                                                                            list = cond do
+                                                                                                      j==1 -> [x+6,x-6]
+                                                                                                      j==6 -> [x+6,x-6]
+                                                                                                      Integer.is_even(j) -> [x+1,x+6,x-6]
+                                                                                                      Integer.is_odd(j) -> [x-1,x+6,x-6]
+                                                                                                   end
+                                                                                            IO.inspect "List for #{x} is "
+                                                                                            IO.inspect list,charlists: :as_lists
+                                                                                            listpids = Enum.map(list,fn(x)->
+                                                                                                                              if Map.has_key?(nodemap,x)
+                                                                                                                                do Map.get(nodemap,x) end
+                                                                                                                             end)
+                                                                                                       |> Enum.reject(fn(x) -> x==:nil end)
+                                                                                            IO.inspect listpids
+                                                                                            pid = Map.get(nodemap,x)
+                                                                                            updateNeighbours(pid,listpids)
+                                                                                  end)
+                                                        end
+
+                                end
+
+                end)
+
+
+#    nodeIDs = Enum.map(nodes, fn(node) -> {id,neighbourList,sum,val} = GenServer.call(node, {:printDetails})
+#                                            id
+#                       end)
+#    IO.inspect nodeIDs
+
+
+      printTopology(nodes)
+
+      nodes
   end
+
+  def randomHoneyComb(numNodes) do
+    nodes = buildHoneycombTopology(numNodes)
+
+    Enum.each(nodes, fn(node)->
+      randNeighbour = Enum.random(nodes)
+      IO.puts "Adding random guy "
+      IO.inspect randNeighbour
+      addNeighbours(node,randNeighbour)
+    end)
+
+      printTopology(nodes)
+
+      nodes
+  end
+
 
 
 
