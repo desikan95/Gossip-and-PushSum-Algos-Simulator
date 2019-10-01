@@ -64,7 +64,7 @@ defmodule PushSumWorker do
   end
 
   def startPushSum(numNodes) do
-    nodes = startPushSumFor2D(numNodes)
+    nodes = build3DTopology(numNodes)
     pid = Enum.random(nodes)
     IO.puts "Starting at "
     IO.inspect pid
@@ -269,38 +269,96 @@ defmodule PushSumWorker do
     nodes = Enum.map(0..(numNodes-1), fn(i) ->
                                  Tuple.append(Enum.at(positions,i), Enum.at(proc,i))
                           end )
-    IO.inspect nodes
+  #  IO.inspect nodes
     #{0,0,0,pid}=nodes
     #IO.inspect pid
     Enum.each(nodes, fn(node)->
                                     list = Tuple.to_list(node)
                                     #IO.inspect node
                                     len = edgelen
-                                    case node do
-                                        {0,0,0,pid} -> IO.puts "Outer node"
-                                                       IO.inspect pid
-                                        {0,0,x,pid} when x==edgelen -> IO.puts "Outer node"
-                                                       IO.inspect pid
-                                        {0,x,0,pid} when x==edgelen-> IO.puts "Outer node"
-                                                       IO.inspect pid
-                                        {0,x,x,pid} when x==edgelen -> IO.puts "Outer node"
-                                                       IO.inspect pid
-                                       {x,0,0,pid} when x==edgelen -> IO.puts "Outer node"
-                                                      IO.inspect pid
-                                       {x,0,x,pid} when x==edgelen  -> IO.puts "Outer node"
-                                                      IO.inspect pid
-                                       {x,x,0,pid} when x==edgelen  -> IO.puts "Outer node"
-                                                      IO.inspect pid
-                                       {x,x,x,pid} when x==edgelen  -> IO.puts "Outer node"
-                                                      IO.inspect pid
+                          #          case node do
+                          #              {0,0,0,pid} -> IO.puts "Outer node"
+                          #                             IO.inspect  pid
+                          #              {0,0,x,pid} when x==edgelen -> IO.puts "Outer node"
+                          #                             IO.inspect pid
+                          #              {0,x,0,pid} when x==edgelen-> IO.puts "Outer node"
+                          #                             IO.inspect pid
+                          #              {0,x,x,pid} when x==edgelen -> IO.puts "Outer node"
+                          #                             IO.inspect pid
+                          #             {x,0,0,pid} when x==edgelen -> IO.puts "Outer node"
+                          #                            IO.inspect pid
+                          #             {x,0,x,pid} when x==edgelen  -> IO.puts "Outer node"
+                          #                            IO.inspect pid
+                          #             {x,x,0,pid} when x==edgelen  -> IO.puts "Outer node"
+                          #                            IO.inspect pid
+                          #             {x,x,x,pid} when x==edgelen  -> IO.puts "Outer node"
+                          #                            IO.inspect pid
 
-                                      _ -> #IO.puts "Not found now"
+                          #            _ -> #IO.puts "Not found now"
+                          #          end
+                                #    IO.puts "\n\n"
+                                    {x,y,z,pid} = node
+                                    xneighbours = cond do
+                                                    x==0 -> [{1,y,z},{len,y,z}]
+                                                    x==len -> [{x-1,y,z},{0,y,z}]
+                                                    true -> [{x-1,y,z},{x+1,y,z}]
+                                                  end
+                                    yneighbours = cond do
+                                                    y==0 -> [{x,len,z},{x,y+1,z}]
+                                                    y==len -> [{x,y-1,z},{x,0,z}]
+                                                    true -> [{x,y-1,z},{x,y+1,z}]
+                                                  end
+                                    zneighbours = cond do
+                                                    z==0 -> [{x,y,z+1},{x,y,len}]
+                                                    z==len -> [{x,y,z-1},{x,y,0}]
+                                                    true -> [{x,y,z-1},{x,y,z+1}]
+                                                  end
+
+                              #      IO.puts "\n\nNeighbours for #{x} #{y} #{z}  "
+                              #      IO.inspect pid
+                                    neighbourlist =[zneighbours|[yneighbours|xneighbours]] |> List.flatten
+                              #      IO.inspect neighbourlist
+                              #      IO.puts "\nEnd"
+
+                                    neighbourPIDs = Enum.map(nodes, fn(node)->
+                                                                {x,y,z,pid} = node
+
+                                                                value = Enum.filter(neighbourlist, fn(neighbour) ->
+                                                                                                            {x,y,z}==neighbour
+                                                                                            end)
+                                                                if !([] == value) do
+                                                                  pid
+                                                                end
+
+
+                                                      end)
+                                                      |> Enum.reject(fn(x) -> x==:nil end)
+
+
+
+                              #      IO.inspect neighbourPIDs
+                                    case numNodes do
+                                      8 -> updateNeighbours(pid,[neighbourPIDs|neighbourPIDs] |> List.flatten )
+                                      _ -> updateNeighbours(pid,neighbourPIDs)
                                     end
-                                    #IO.inspect pid
-                        end)
+                                  #  updateNeighbours(pid,neighbourPIDs)
 
+                        end)
+    #  printTopology(proc)
+
+      proc
+  end
+
+  def simplefunc() do
+    {x,y,z} = {1,2,3}
+    list = [{4,5,6},{10,12,100},{1,2,3}]
+    listd = [{4,5,6,555},{10,12,100,666},{1,2,3,777}]
+    Enum.filter(listd,fn (item,x,y,z) -> {^x,^y,^z,value} = item
+                                    IO.puts  "#{value}"
+                            end)
 
   end
+
 
 
   def init (val) do
