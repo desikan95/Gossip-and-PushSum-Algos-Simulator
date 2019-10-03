@@ -1,21 +1,28 @@
-# Gossipsim
+Team Members -
+  Desikan Sundararajan : 5615-9991
+  Madhura Basavaraju : 6794-1287
 
-**TODO: Add description**
+Running the Project
+  mix run my_program.exs numNodes topology algorithm
 
-## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `gossipsim` to your list of dependencies in `mix.exs`:
+What is working
+  -- All topologies have been implemented - Line, Full, Rand2d, 3DTorus (please enter perfect cube number as number of nodes for 3D), Honeycomb, randomHoneyComb
+  -- Both algorithms are working - Push Sum and Gossipsim
 
-```elixir
-def deps do
-  [
-    {:gossipsim, "~> 0.1.0"}
-  ]
-end
-```
+Largest Number of nodes
+Gossip
+  - line
+  - full
+  - rand2D
+  - 3Dtorus
+  - honeycomb
+  - randhoneycomb
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/gossipsim](https://hexdocs.pm/gossipsim).
-
+PushSum
+  - line
+  - full
+  - rand2D
+  - 3Dtorus
+  - honeycomb
+  - randhoneycomb
